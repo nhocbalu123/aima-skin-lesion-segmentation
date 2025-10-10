@@ -1,1 +1,1 @@
-# -AIMA-Warm-up-AI-VIETNAM-Skin-Lesion-Segmentation
+# AIMA Skin Lesion Segmentation
