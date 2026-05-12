@@ -6,7 +6,7 @@ The implementation is built around practical competition improvements: attention
 
 ## Notebook
 
-- `code-for-ai-vietnam-skin-lesion-segmentation(1).ipynb`
+- `code-for-ai-vietnam-skin-lesion-segmentation.ipynb`
 
 ## Problem
 
