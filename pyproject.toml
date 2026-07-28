@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==75.3.0", "wheel==0.44.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aima-skin-lesion-segmentation"
+version = "0.1.0"
+description = "Reproducible learner pipeline for binary skin-lesion segmentation"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "tensorflow==2.16.1",
+  "keras==3.0.5",
+  "numpy==1.26.4",
+  "opencv-python-headless==4.10.0.84",
+  "albumentations==1.4.24",
+  "pandas==2.2.2",
+  "matplotlib==3.9.2",
+]
+
+[project.scripts]
+skin-lesion-segmentation = "skin_lesion_segmentation.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

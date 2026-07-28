@@ -1,0 +1,45 @@
+{
+  "base_filters": 32,
+  "batch_size": 8,
+  "early_stopping_patience": 8,
+  "epochs": 50,
+  "group_mapping_path": null,
+  "image_dir": "data/train/images",
+  "image_height": 256,
+  "image_width": 256,
+  "l2_coefficient": 0.0001,
+  "learning_rate": 0.001,
+  "mask_dir": "data/train/masks",
+  "mask_suffix": "_segmentation",
+  "min_component_sizes": [
+    0,
+    16,
+    32,
+    64
+  ],
+  "mixed_precision": false,
+  "morphology_kernels": [
+    0,
+    3
+  ],
+  "n_tta": 8,
+  "output_dir": "artifacts/run",
+  "rle_order": "C",
+  "rle_order_confirmed": false,
+  "sample_submission_path": null,
+  "seed": 42,
+  "submission_id_column": "id",
+  "submission_id_suffix": "",
+  "submission_mask_column": "segmentation",
+  "test_image_dir": "data/test/images",
+  "threshold_grid": [
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65
+  ],
+  "validation_fraction": 0.2
+}
