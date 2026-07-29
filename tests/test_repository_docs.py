@@ -39,10 +39,11 @@ def test_kaggle_controlled_rerun_notebook_is_complete_and_clean() -> None:
         "SAMPLE_SUBMISSION_PATH",
         "submission_id_suffix",
         "rle_order_confirmed",
-        "pytest",
-        "prepare",
-        "train",
-        "submit",
+        "pytest -q -W error",
+        "prepare --config",
+        "train --config",
+        "submit --config",
+
         "final_validation_metrics.json",
         "qualitative_validation.png",
     ]:
@@ -86,3 +87,4 @@ def test_kaggle_notebook_records_fixed_submission_geometry() -> None:
         "final_submission_parameters.json",
     ]:
         assert required in source
+

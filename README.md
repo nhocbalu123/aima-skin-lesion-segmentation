@@ -76,6 +76,7 @@ The model is a standard Attention U-Net with four encoder and decoder levels. At
 
 The combined objective is:
 
+
 ```text
 w = 2.0 where y = 1, otherwise 1.0
 WeightedDice = (2 * sum(w * y * p) + eps) /
@@ -93,6 +94,7 @@ CombinedLoss = 0.5 * WeightedDiceLoss + 0.5 * FocalTverskyLoss
 
 Defaults are foreground weight 2.0, `alpha=0.3`, `beta=0.7`, and direct exponent `gamma=0.75`. Alpha weights false positives and beta weights false negatives. Logged Keras loss can also include L2 kernel-regularisation penalties.
 
+
 ## Repository structure
 
 ```text
@@ -105,6 +107,7 @@ notebooks/
 results/controlled_rerun/               Compact controlled-run evidence
 src/skin_lesion_segmentation/           Maintained implementation
 scripts/                                Verification and checksum utilities
+
 tests/                                  Synthetic CPU tests
 ```
 
@@ -115,6 +118,7 @@ Pinned development target:
 - Python 3.11
 - TensorFlow 2.16.1
 - Keras 3.0.5 through `tf.keras`
+
 - NumPy 1.26.4
 - OpenCV 4.10.0.84
 - Albumentations 1.4.24
@@ -124,6 +128,7 @@ Pinned development target:
 The controlled Kaggle rerun recorded Python 3.11.13, TensorFlow 2.18.0, Keras 3.8.0, NumPy 1.26.4, and two visible GPUs. See `results/controlled_rerun/environment.json`. This difference is recorded rather than hidden.
 
 Create a local environment:
+
 
 ```bash
 python -m venv .venv
@@ -140,6 +145,7 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
 Obtain the dataset through its authorised competition or program channel. Do not commit or redistribute restricted images, masks, metadata, sample submissions, or generated competition submissions.
 
 Default local layout:
+
 
 ```text
 data/
@@ -160,9 +166,19 @@ Edit `configs/default.json` for the authorised dataset paths. A group mapping ca
 ```bash
 python -m skin_lesion_segmentation.cli prepare --config configs/default.json
 pytest -q -W error
+
 python scripts/verify_repository.py
 python scripts/synthetic_smoke.py
 ```
+
+Without reliable group metadata, the split is image-level. Patient or lesion independence cannot be guaranteed, and the split must not be described as leakage-free.
+
+For the recommended Kaggle workflow, upload the repaired repository archive as
+a private Kaggle Dataset, attach the authorised competition data, and run
+`notebooks/kaggle_controlled_rerun.ipynb`. Training and submission are gated so
+the pairing and split manifests can be reviewed before GPU work begins.
+Detailed steps are in `docs/KAGGLE_NOTEBOOK.md`.
+
 
 ## Train
 
@@ -174,6 +190,7 @@ Training streams paths batch by batch. Validation and test data are not augmente
 
 ## Evaluate
 
+
 ```bash
 python -m skin_lesion_segmentation.cli evaluate \
   --config configs/default.json \
@@ -181,7 +198,8 @@ python -m skin_lesion_segmentation.cli evaluate \
   --split-manifest artifacts/run/split_manifest.json
 ```
 
-Saved predictions can be evaluated without another model pass:
+Saved validation probabilities can also be re-evaluated without TensorFlow or another model pass:
+
 
 ```bash
 python -m skin_lesion_segmentation.cli evaluate-predictions \
@@ -189,7 +207,8 @@ python -m skin_lesion_segmentation.cli evaluate-predictions \
   --threshold 0.5
 ```
 
-Empty-mask convention:
+Final metrics are thresholded per image and macro-averaged. Empty-mask convention:
+
 
 - Empty ground truth and empty prediction: score 1.
 - Empty ground truth and any predicted foreground: score 0.
@@ -210,6 +229,7 @@ Set these configuration fields:
 ```
 
 Then use the maintained raw parameters:
+
 
 ```bash
 python -m skin_lesion_segmentation.cli submit \
@@ -240,6 +260,7 @@ Large or restricted artifacts are intentionally excluded from Git:
 - Validation-selected post-processing did not produce a meaningful hidden-test benefit.
 - The private leaderboard score was lower than validation and public performance, suggesting distribution shift or unstable generalisation.
 - No architecture comparison, cross-validation, external validation, lesion-size study, or clinical validation has been completed.
+
 
 ## Method references
 

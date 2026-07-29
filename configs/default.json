@@ -33,6 +33,7 @@
   "submission_mask_column": "segmentation",
   "submission_mask_height": 512,
   "submission_mask_width": 512,
+
   "test_image_dir": "data/test/images",
   "threshold_grid": [
     0.35,

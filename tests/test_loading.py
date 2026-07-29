@@ -83,6 +83,8 @@ def test_mask_loader_preserves_zero_one_encoded_masks(tmp_path: Path) -> None:
     assert set(np.unique(mask).tolist()) == {0.0, 1.0}
 
 
+
+
 def test_mask_binarisation_rejects_low_intensity_background_noise(tmp_path: Path) -> None:
     image_path = tmp_path / "image.png"
     mask_path = tmp_path / "mask.png"
@@ -114,3 +116,4 @@ def test_resize_binary_mask_rejects_invalid_shape() -> None:
 
     with pytest.raises(ValueError, match="target shape"):
         resize_binary_mask(np.zeros((2, 2), dtype=np.uint8), (0, 8))
+

@@ -141,6 +141,7 @@ def load_image(image_path: Path | str, image_size: tuple[int, int]) -> np.ndarra
 
 
 
+
 def resize_binary_mask(
     mask: np.ndarray,
     target_shape: tuple[int, int],
@@ -154,17 +155,20 @@ def resize_binary_mask(
     height, width = target_shape
     if height <= 0 or width <= 0:
         raise ValueError(f"target shape must be positive, got {target_shape}")
+
     binary = np.asarray(mask)
     if binary.ndim == 3 and binary.shape[-1] == 1:
         binary = binary[..., 0]
     if binary.ndim != 2:
         raise ValueError(f"mask must be 2D or [H,W,1], got {binary.shape}")
     resized = cv2.resize(
+
         (binary > 0).astype(np.uint8),
         (width, height),
         interpolation=cv2.INTER_NEAREST,
     )
     return (resized > 0).astype(np.uint8)
+
 
 
 class PathImageSequence(_KerasSequence):

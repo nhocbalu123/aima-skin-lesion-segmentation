@@ -7,4 +7,5 @@
 - Standard methods: Attention U-Net and focal-Tversky loss are published methods cited in the README.
 - Starter or guided code: the repository does not currently document which historical notebook sections came from starter material, guided examples, or independent student implementation. No ownership inference is made.
 - Leaderboard evidence: current leaderboard values are author-reported because no Kaggle leaderboard export or screenshot is committed.
+
 - Licence: no licence was added or changed because the right to license all included historical code has not been confirmed.

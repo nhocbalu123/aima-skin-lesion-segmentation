@@ -12,6 +12,7 @@ Attach:
 
 The historical dataset root was:
 
+
 ```text
 /kaggle/input/warm-up-program-ai-vietnam-skin-segmentation
 ```
@@ -52,3 +53,4 @@ submission_mask_height: 512
 submission_mask_width: 512
 maximum_valid_rle_position: 262144
 ```
+

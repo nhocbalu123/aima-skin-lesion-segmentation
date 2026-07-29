@@ -6,3 +6,4 @@
 - `kaggle_submission_only.ipynb`: checkpoint-based final raw threshold-0.5 submission workflow using fixed 512 x 512 masks and C-order RLE.
 
 Generated outputs are intentionally cleared before committing notebooks.
+

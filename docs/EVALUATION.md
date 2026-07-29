@@ -23,6 +23,7 @@ Training selects the checkpoint with minimum validation loss. Logged Keras loss 
 
 The controlled rerun completed 31 epochs and selected epoch 23 with validation loss 0.260925.
 
+
 ## Split integrity
 
 - Patient or lesion groups are used only when supplied through explicit metadata.
@@ -55,3 +56,4 @@ The final submission path therefore:
 5. Validates IDs, ordering, row count, duplicates, and RLE bounds against the official sample submission.
 
 Resizing predictions to source-image dimensions is incorrect for this competition and is protected by tests.
+

@@ -163,3 +163,4 @@ def test_generate_submission_uses_explicit_competition_mask_geometry(
     assert result["submission_mask_height"] == 8
     assert result["submission_mask_width"] == 6
     assert result["maximum_valid_rle_position"] == 48
+

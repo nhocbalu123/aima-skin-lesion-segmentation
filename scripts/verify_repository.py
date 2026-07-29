@@ -73,6 +73,7 @@ def check_kaggle_notebook() -> None:
 
 
 
+
 def check_controlled_rerun_evidence() -> None:
     evidence = ROOT / "results" / "controlled_rerun"
     required = {
@@ -130,6 +131,7 @@ def main() -> int:
     check_notebook()
     check_kaggle_notebook()
     check_controlled_rerun_evidence()
+
     check_whitespace()
     print("Repository static checks passed")
     return 0

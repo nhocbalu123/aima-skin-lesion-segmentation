@@ -29,11 +29,13 @@ The leaderboard values are author-reported because a leaderboard export is not c
 
 ## Commands
 
+
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 python -m skin_lesion_segmentation.cli prepare --config configs/controlled_rerun.json
 pytest -q -W error
+
 python scripts/verify_repository.py
 python -m skin_lesion_segmentation.cli train --config configs/controlled_rerun.json
 python -m skin_lesion_segmentation.cli submit \
@@ -54,3 +56,4 @@ Required submission configuration:
 ```
 
 Do not tune additional thresholds or post-processing choices against leaderboard results.
+
