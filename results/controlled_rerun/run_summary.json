@@ -1,0 +1,10 @@
+{
+  "checkpoint": {
+    "path": "/kaggle/working/artifacts/controlled_rerun/best_model.keras",
+    "sha256": "668b03c90e8cbb3e9119d649ee65290f3ba785f41f7cb08c2dbd9bef53e0dab8",
+    "size_bytes": 157511622
+  },
+  "checkpoint_selection": "minimum validation loss; final metrics computed offline after reload",
+  "epochs_completed": 31,
+  "evaluation_artifact": "/kaggle/working/artifacts/controlled_rerun/final_validation_metrics.json"
+}

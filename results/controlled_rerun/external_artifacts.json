@@ -1,0 +1,38 @@
+{
+  "best_model.keras": {
+    "sha256": "668b03c90e8cbb3e9119d649ee65290f3ba785f41f7cb08c2dbd9bef53e0dab8",
+    "size_bytes": 157511622,
+    "committed_to_git": false
+  },
+  "validation_predictions.npz": {
+    "sha256": "e8559e33033cd882fa299b89c4727f54561c729210c761b3c498a00f9e913c95",
+    "size_bytes": 106405428,
+    "committed_to_git": false
+  },
+  "final_validation_metrics.json": {
+    "sha256": "452ccfb656724a66e235a0ccf3e69910cbbf9e7a1741708876f95880e265d927",
+    "size_bytes": 96678,
+    "committed_to_git": false
+  },
+  "qualitative_validation.png": {
+    "sha256": "f7fb1fc6ac0e50a4a7914938f4c08df58ee759e13852458fcdcc5a9bee5b38d7",
+    "size_bytes": 1390607,
+    "committed_to_git": false
+  },
+  "pair_manifest.csv": {
+    "sha256": "7b8c8dd8e8b722e8b775247910e2d789a2d300e15968e09a63e79b0b8a81a21a",
+    "size_bytes": 555148,
+    "committed_to_git": false
+  },
+  "split_manifest.csv": {
+    "sha256": "9732fbf91b79e260614bb717b5b255213f63110b19b42274e23f8127eb23779d",
+    "size_bytes": 744539,
+    "committed_to_git": false
+  },
+  "split_manifest.json": {
+    "sha256": "8b7c54ea1625db7237157a589e084210158240155c1ce9cd0c9d1856c52dda8c",
+    "size_bytes": 1076514,
+    "committed_to_git": false
+  },
+  "note": "These generated artifacts are retained outside Git because of size, dataset-path metadata, or restricted image content."
+}

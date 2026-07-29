@@ -1,0 +1,38 @@
+{
+  "evidence_date": "2026-07-29",
+  "dataset_pairs": 2594,
+  "split": {
+    "train_images": 2075,
+    "validation_images": 519,
+    "type": "deterministic image-level split",
+    "group_metadata_available": false,
+    "patient_or_lesion_independence_guaranteed": false,
+    "duplicate_sample_ids": 0,
+    "exact_duplicate_images_detected": 0
+  },
+  "training": {
+    "epochs_completed": 31,
+    "best_epoch_zero_based": 22,
+    "best_epoch_human": 23,
+    "best_validation_loss": 0.2609250247478485,
+    "checkpoint_selection": "minimum validation loss; offline evaluation after checkpoint reload"
+  },
+  "offline_validation": {
+    "n_images": 519,
+    "raw_threshold_0_5": {
+      "macro_dice": 0.805922296461998,
+      "macro_iou": 0.7133683706281054,
+      "threshold": 0.5,
+      "min_component_size": 0,
+      "morphology_kernel": 0
+    },
+    "validation_selected_postprocessing": {
+      "macro_dice": 0.8084818835890978,
+      "macro_iou": 0.7149090467640741,
+      "min_component_size": 64,
+      "morphology_kernel": 3,
+      "threshold": 0.35
+    },
+    "selected_minus_raw_macro_dice": 0.002559587127099805
+  }
+}

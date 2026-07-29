@@ -1,0 +1,24 @@
+{
+  "cpu_count": 4,
+  "machine": "x86_64",
+  "packages": {
+    "albumentations": "1.4.24",
+    "keras": "3.8.0",
+    "matplotlib": "3.7.2",
+    "numpy": "1.26.4",
+    "opencv-python": "4.11.0.86",
+    "opencv-python-headless": "4.10.0.84",
+    "pandas": "2.2.3",
+    "scikit-learn": "1.2.2",
+    "tensorflow": "2.18.0"
+  },
+  "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+  "processor": "x86_64",
+  "python_implementation": "CPython",
+  "python_version": "3.11.13",
+  "tensorflow_devices": [
+    "/physical_device:CPU:0",
+    "/physical_device:GPU:0",
+    "/physical_device:GPU:1"
+  ]
+}

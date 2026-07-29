@@ -1,0 +1,5 @@
+{
+  "threshold": 0.5,
+  "min_component_size": 0,
+  "morphology_kernel": 0
+}
