@@ -17,4 +17,3 @@ results/**/split_manifest.csv
 results/**/split_manifest.json
 results/**/qualitative_validation.png
 results/**/validation_metrics_full.json
-
