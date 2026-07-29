@@ -54,4 +54,3 @@ def test_submission_mask_dimensions_are_explicit_and_positive() -> None:
 
     with pytest.raises(ValueError, match="submission mask dimensions"):
         ExperimentConfig(submission_mask_height=0).validate()
-

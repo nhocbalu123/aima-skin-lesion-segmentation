@@ -13,7 +13,6 @@ from .artifacts import RunArtifacts
 from .config import ExperimentConfig
 from .data import SUPPORTED_IMAGE_EXTENSIONS
 from .loading import PathImageSequence, resize_binary_mask
-
 from .model import load_model
 from .postprocessing import apply_postprocessing
 from .submission import build_submission
@@ -71,7 +70,6 @@ def generate_submission(
         start = batch_index * config.batch_size
         batch_paths = test_paths[start : start + len(probabilities)]
         for probability, _image_path in zip(probabilities[..., 0], batch_paths, strict=True):
-
             raw = probability >= float(params["threshold"])
             model_space_mask = apply_postprocessing(
                 raw,
@@ -83,7 +81,6 @@ def generate_submission(
                     model_space_mask,
                     (config.submission_mask_height, config.submission_mask_width),
                 )
-
             )
     sample_submission = pd.read_csv(config.sample_submission_path, keep_default_na=False)
     submission, summary = build_submission(
@@ -108,7 +105,6 @@ def generate_submission(
         "maximum_valid_rle_position": (
             config.submission_mask_height * config.submission_mask_width
         ),
-
     }
     artifacts.write_json("submission_validation_summary.json", result)
     return result

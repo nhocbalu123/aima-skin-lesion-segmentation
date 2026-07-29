@@ -35,7 +35,6 @@ class ExperimentConfig:
     submission_id_suffix: str = ""
     submission_mask_height: int = 512
     submission_mask_width: int = 512
-
     n_tta: int = 8
     threshold_grid: list[float] = field(default_factory=lambda: [0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65])
     min_component_sizes: list[int] = field(default_factory=lambda: [0, 16, 32, 64])
@@ -69,7 +68,6 @@ class ExperimentConfig:
             raise ValueError("submission column names must be non-empty")
         if self.submission_mask_height <= 0 or self.submission_mask_width <= 0:
             raise ValueError("submission mask dimensions must be positive")
-
         if not self.threshold_grid or not self.min_component_sizes or not self.morphology_kernels:
             raise ValueError("threshold and post-processing parameter grids must not be empty")
         if any(not 0.0 <= value <= 1.0 for value in self.threshold_grid):
