@@ -4,20 +4,33 @@ from __future__ import annotations
 
 import csv
 import json
+import sys
+import time
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from .artifacts import RunArtifacts
 from .augmentations import build_train_augmentation
 from .config import ExperimentConfig
 from .data import SamplePair, build_pair_manifest
-from .evaluation import evaluate_checkpoint
+from .evaluation import evaluate_checkpoint, load_split_manifest
 from .loading import PathBatchSequence
 from .losses import combined_segmentation_loss
 from .metrics import soft_dice_batch_global_tf
-from .model import build_attention_unet
-from .reproducibility import collect_environment, set_global_determinism
-from .splitting import build_split_manifest
+from .model import build_model
+from .reproducibility import (
+    collect_environment,
+    collect_git_provenance,
+    command_record,
+    set_global_determinism,
+)
+from .schemas import validate_run_summary
+from .splitting import (
+    build_comparison_manifest,
+    build_split_manifest,
+    manifest_sha256,
+    validate_manifest_against_pairs,
+)
 
 
 def load_group_mapping(path: Path | str | None) -> dict[str, str] | None:
@@ -59,20 +72,29 @@ def load_group_mapping(path: Path | str | None) -> dict[str, str] | None:
     raise ValueError("group_mapping_path must be a .json or .csv file")
 
 
-def prepare_manifests(config: ExperimentConfig) -> tuple[list[SamplePair], list[dict[str, object]]]:
+def prepare_manifests(
+    config: ExperimentConfig,
+    *,
+    split_manifest_path: Path | str | None = None,
+) -> tuple[list[SamplePair], list[dict[str, object]]]:
     """Validate pairing, audit duplicates, split paths, and save manifests."""
 
     config.validate()
     artifacts = RunArtifacts(config.output_dir)
     pairs = build_pair_manifest(config.image_dir, config.mask_dir, config.mask_suffix)
-    groups = load_group_mapping(config.group_mapping_path)
-    split_rows = build_split_manifest(
-        pairs,
-        config.validation_fraction,
-        config.seed,
-        group_mapping=groups,
-        output_path=artifacts.path("split_manifest.json"),
-    )
+    if split_manifest_path is None:
+        groups = load_group_mapping(config.group_mapping_path)
+        split_rows = build_split_manifest(
+            pairs,
+            config.validation_fraction,
+            config.seed,
+            group_mapping=groups,
+            output_path=artifacts.path("split_manifest.json"),
+        )
+    else:
+        supplied_rows = load_split_manifest(split_manifest_path)
+        split_rows = validate_manifest_against_pairs(supplied_rows, pairs)
+        artifacts.write_json("split_manifest.json", split_rows)
     artifacts.write_csv(
         "pair_manifest.csv",
         [
@@ -88,11 +110,40 @@ def prepare_manifests(config: ExperimentConfig) -> tuple[list[SamplePair], list[
     return pairs, split_rows
 
 
-def _pairs_by_split(
+def prepare_comparison_manifest(
+    config: ExperimentConfig,
+    output_manifest: Path | str,
+) -> tuple[list[SamplePair], list[dict[str, object]]]:
+    """Write the single immutable three-way manifest used by every run."""
+
+    config.validate()
+    pairs = build_pair_manifest(config.image_dir, config.mask_dir, config.mask_suffix)
+    groups = load_group_mapping(config.group_mapping_path)
+    rows = build_comparison_manifest(
+        pairs,
+        validation_fraction=config.validation_fraction,
+        internal_test_fraction=config.internal_test_fraction,
+        split_seed=config.split_seed,
+        group_mapping=groups,
+        output_path=output_manifest,
+    )
+    return pairs, rows
+
+
+def training_pairs_from_manifest(
     pairs: list[SamplePair],
     rows: list[Mapping[str, object]],
 ) -> tuple[list[SamplePair], list[SamplePair]]:
+    """Return only fitting and checkpoint-selection samples.
+
+    Rows assigned to ``internal_test`` are deliberately ignored so training
+    code cannot construct a test sequence accidentally.
+    """
+
     split_by_id = {str(row["sample_id"]): str(row["split"]) for row in rows}
+    pair_ids = {pair.sample_id for pair in pairs}
+    if pair_ids != set(split_by_id):
+        raise ValueError("Pair IDs and split-manifest IDs must match exactly")
     train = [pair for pair in pairs if split_by_id[pair.sample_id] == "train"]
     validation = [pair for pair in pairs if split_by_id[pair.sample_id] == "validation"]
     if not train or not validation:
@@ -100,7 +151,12 @@ def _pairs_by_split(
     return train, validation
 
 
-def train(config: ExperimentConfig) -> dict[str, Any]:
+def train(
+    config: ExperimentConfig,
+    *,
+    split_manifest_path: Path | str | None = None,
+    command: Sequence[object] | None = None,
+) -> dict[str, Any]:
     """Train, reload the selected checkpoint, and evaluate it offline.
 
     Checkpoint selection uses validation loss. Keras loss values may include L2
@@ -110,14 +166,20 @@ def train(config: ExperimentConfig) -> dict[str, Any]:
 
     import tensorflow as tf
 
+    started_at = time.perf_counter()
     config.validate()
     artifacts = RunArtifacts(config.output_dir)
     determinism = set_global_determinism(config.seed)
-    artifacts.write_json("effective_config.json", config.to_dict())
+    effective_config = config.to_dict()
+    environment = collect_environment()
+    artifacts.write_json("effective_config.json", effective_config)
     artifacts.write_json("random_seed.json", determinism)
-    artifacts.write_json("environment.json", collect_environment())
-    pairs, split_rows = prepare_manifests(config)
-    train_pairs, validation_pairs = _pairs_by_split(pairs, split_rows)
+    artifacts.write_json("environment.json", environment)
+    pairs, split_rows = prepare_manifests(
+        config,
+        split_manifest_path=split_manifest_path,
+    )
+    train_pairs, validation_pairs = training_pairs_from_manifest(pairs, split_rows)
 
     train_sequence = PathBatchSequence(
         train_pairs,
@@ -134,7 +196,8 @@ def train(config: ExperimentConfig) -> dict[str, Any]:
         shuffle=False,
         augmentation=None,
     )
-    model = build_attention_unet(
+    model = build_model(
+        config.model,
         (config.image_height, config.image_width, 3),
         base_filters=config.base_filters,
         l2_coefficient=config.l2_coefficient,
@@ -180,11 +243,44 @@ def train(config: ExperimentConfig) -> dict[str, Any]:
         artifacts.path("split_manifest.json"),
         artifact_dir=artifacts.root,
     )
-    summary: dict[str, Any] = {
-        "epochs_completed": len(history.epoch),
+    validation_metrics = evaluation["raw_threshold_0_5"]
+    validation_losses = [
+        float(value)
+        for value in history.history.get("val_loss", [])
+    ]
+    if not validation_losses:
+        raise RuntimeError("Training history did not record validation loss")
+    best_index = min(
+        range(len(validation_losses)),
+        key=validation_losses.__getitem__,
+    )
+    summary = validate_run_summary({
+        "schema_version": 1,
+        "model_name": config.model,
+        "seed": config.seed,
+        "manifest_sha256": manifest_sha256(split_rows),
+        "parameter_count": int(model.count_params()),
+        "effective_config": effective_config,
+        "checkpoint_selection": {
+            "monitor": "val_loss",
+            "mode": "min",
+            "rule": "minimum validation loss",
+            "early_stopping_patience": config.early_stopping_patience,
+        },
         "checkpoint": checkpoint_record,
-        "checkpoint_selection": "minimum validation loss; final metrics computed offline after reload",
-        "evaluation_artifact": str(artifacts.path("final_validation_metrics.json")),
-    }
+        "epochs_completed": len(history.epoch),
+        "best_epoch": best_index + 1,
+        "best_validation_loss": validation_losses[best_index],
+        "validation_metrics": {
+            "threshold": float(validation_metrics["threshold"]),
+            "macro_dice": float(validation_metrics["macro_dice"]),
+            "macro_iou": float(validation_metrics["macro_iou"]),
+            "n_images": int(validation_metrics["n_images"]),
+        },
+        "runtime_seconds": float(time.perf_counter() - started_at),
+        "command": command_record(command or sys.argv),
+        "source": collect_git_provenance(Path(__file__).resolve().parents[2]),
+        "environment": environment,
+    })
     artifacts.write_json("run_summary.json", summary)
-    return {**summary, "evaluation": evaluation}
+    return {"summary": summary, "evaluation": evaluation}

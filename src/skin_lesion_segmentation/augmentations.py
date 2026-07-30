@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import cv2
 
 
@@ -13,6 +15,9 @@ def build_train_augmentation(seed: int):
     ``alpha_affine``, ``shift_limit``, and ``var_limit`` arguments.
     """
 
+    # Albumentations 1.4.24 otherwise performs an import-time PyPI version
+    # check. Training and CI must be deterministic and network-independent.
+    os.environ.setdefault("NO_ALBUMENTATIONS_UPDATE", "1")
     import albumentations as A
 
     return A.Compose(

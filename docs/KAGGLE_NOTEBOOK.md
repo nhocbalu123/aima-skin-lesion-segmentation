@@ -1,54 +1,65 @@
-# Kaggle notebook guide
+# Canonical Kaggle workflow
 
-Use `notebooks/kaggle_controlled_rerun.ipynb` for verification, training, or a same-workflow submission. Use `notebooks/kaggle_submission_only.ipynb` when the checkpoint already exists as an attached Kaggle Dataset or notebook output.
+Use only `notebooks/kaggle_controlled_rerun.ipynb`. It is a thin orchestrator
+around the tested package and starts with every mutation gate disabled.
 
-## Inputs
+## Attach inputs
 
 Attach:
 
-1. The repaired repository as either a ZIP or an extracted Kaggle Dataset.
-2. The authorised AIMA skin-lesion dataset.
-3. For submission-only mode, the controlled-run artifact ZIP or prior notebook output containing `best_model.keras`.
+1. a ZIP or Kaggle Dataset created from one frozen repository commit;
+2. the authorised AIMA skin-lesion dataset;
+3. the immutable comparison manifest after its one-time creation;
+4. for comparison, the two matched training outputs for one seed.
 
-The historical dataset root was:
+Kaggle inputs are read-only. The notebook copies source into a dedicated
+`/kaggle/working` runtime directory before editable installation and
+verification. Set `SOURCE_COMMIT` to the exact commit used to make the source
+archive so provenance remains available without `.git`.
 
-```text
-/kaggle/input/warm-up-program-ai-vietnam-skin-segmentation
-```
+Do not attach credentials, unapproved datasets, or a substitute skin-lesion
+dataset.
 
-## Workflow modes
+## Gates
 
-In `kaggle_controlled_rerun.ipynb`, choose exactly one:
+The notebook separates:
 
-```python
-WORKFLOW_MODE = "verify"  # tests, pairing, split audit, model smoke check
-WORKFLOW_MODE = "train"   # verify plus controlled training and evaluation
-WORKFLOW_MODE = "submit"  # restore checkpoint and generate final submission
-```
+- `RUN_VERIFY`: install, repository checks, tests, pairing, and model smoke;
+- `RUN_PREPARE`: one-time immutable 70/15/15 manifest creation;
+- `RUN_TRAINING`: exactly one architecture/seed run per Kaggle session;
+- `RUN_COMPARISON`: one matched-seed internal-test comparison;
+- `RUN_SUBMISSION`: optional competition submission, explicitly outside model
+  selection.
 
-The notebook starts in `verify` mode. Review the manifests before changing to `train`.
+Verification must pass before enabling another gate. Review the resolved
+dataset path, pair count, manifest hash, source commit, environment, device,
+and effective configuration in every session.
 
-## Final submission contract
+## Six training sessions
 
-The successful historical encoder used C-order and fixed 512 x 512 masks. The maintained final parameters are:
+Run this matrix with the same source, dataset, manifest, accelerator class, and
+configuration:
 
-```text
-threshold: 0.5
-minimum component size: 0
-morphology kernel: 0
-TTA transforms: 8
-submission mask: 512 x 512
-RLE order: C
-```
+| Session | Model | Seed |
+| --- | --- | ---: |
+| 1 | `unet` | 42 |
+| 2 | `attention_unet` | 42 |
+| 3 | `unet` | 43 |
+| 4 | `attention_unet` | 43 |
+| 5 | `unet` | 44 |
+| 6 | `attention_unet` | 44 |
 
-The final parameters are stored in `results/controlled_rerun/final_submission_parameters.json`. Do not resize masks to original source-image dimensions.
+Download each run output before the Kaggle session expires. Do not inspect the
+internal test until all six training sessions finish.
 
-Before uploading a CSV, confirm that `submission_validation_summary.json` reports:
+## Three comparison sessions
 
-```text
-sample_submission_validated: true
-rle_order: C
-submission_mask_height: 512
-submission_mask_width: 512
-maximum_valid_rle_position: 262144
-```
+Pair outputs only by identical seed. The comparison code rejects mismatched
+source, manifest, settings, software, hardware, or checkpoint checksum.
+
+Preserve the lightweight comparison directory described in
+`docs/RESULT_ARTIFACTS.md`. Do not return checkpoints, prediction arrays,
+private images, masks, generated submissions, or caches to Git.
+
+Full commands and the interpretation rules are in
+`docs/MODEL_COMPARISON.md`.

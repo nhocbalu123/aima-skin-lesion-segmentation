@@ -22,21 +22,32 @@ def _register_custom_objects(tf: Any) -> None:
         registry[f"{package}>{name}"] = obj
 
 
-def build_attention_unet(
+SUPPORTED_MODELS = ("unet", "attention_unet")
+
+
+def build_model(
+    model_name: str,
     input_shape: tuple[int, int, int],
     *,
     base_filters: int = 32,
     l2_coefficient: float = 1e-4,
     mixed_precision: bool = False,
 ):
-    """Build a standard Attention U-Net with a float32 sigmoid output.
+    """Build a matched U-Net or Attention U-Net with a float32 output.
 
-    This is an implementation of published methods, not a claim of an original
-    architecture. Spatial dimensions must be divisible by 16.
+    Both variants share the complete encoder/decoder implementation. The
+    Attention U-Net applies an attention gate to each skip tensor immediately
+    before concatenation; the plain U-Net concatenates that tensor directly.
+    Spatial dimensions must be divisible by 16.
     """
 
     import tensorflow as tf
 
+    normalised_name = str(model_name).strip().lower()
+    if normalised_name not in SUPPORTED_MODELS:
+        raise ValueError(
+            f"Unknown model '{model_name}'. Expected one of: {', '.join(SUPPORTED_MODELS)}"
+        )
     if len(input_shape) != 3 or input_shape[-1] != 3:
         raise ValueError("input_shape must be (height, width, 3)")
     if input_shape[0] % 16 or input_shape[1] % 16:
@@ -88,8 +99,12 @@ def build_attention_unet(
         start=1,
     ):
         x = tf.keras.layers.Conv2DTranspose(filters, 2, strides=2, padding="same", name=f"up{level}")(x)
-        attended = attention_gate(skip, x, max(filters // 2, 1), f"attention{level}")
-        x = tf.keras.layers.Concatenate(name=f"concat{level}")([x, attended])
+        skip_tensor = (
+            attention_gate(skip, x, max(filters // 2, 1), f"attention{level}")
+            if normalised_name == "attention_unet"
+            else skip
+        )
+        x = tf.keras.layers.Concatenate(name=f"concat{level}")([x, skip_tensor])
         x = conv_block(x, filters, f"decoder{level}")
 
     outputs = tf.keras.layers.Conv2D(
@@ -99,9 +114,45 @@ def build_attention_unet(
         dtype="float32",
         name="segmentation",
     )(x)
-    model = tf.keras.Model(inputs=inputs, outputs=outputs, name="attention_unet")
+    model = tf.keras.Model(inputs=inputs, outputs=outputs, name=normalised_name)
     _register_custom_objects(tf)
     return model
+
+
+def build_unet(
+    input_shape: tuple[int, int, int],
+    *,
+    base_filters: int = 32,
+    l2_coefficient: float = 1e-4,
+    mixed_precision: bool = False,
+):
+    """Build the plain U-Net control through the shared model factory."""
+
+    return build_model(
+        "unet",
+        input_shape,
+        base_filters=base_filters,
+        l2_coefficient=l2_coefficient,
+        mixed_precision=mixed_precision,
+    )
+
+
+def build_attention_unet(
+    input_shape: tuple[int, int, int],
+    *,
+    base_filters: int = 32,
+    l2_coefficient: float = 1e-4,
+    mixed_precision: bool = False,
+):
+    """Build the Attention U-Net variant through the shared model factory."""
+
+    return build_model(
+        "attention_unet",
+        input_shape,
+        base_filters=base_filters,
+        l2_coefficient=l2_coefficient,
+        mixed_precision=mixed_precision,
+    )
 
 
 def load_model(path: Path | str, *, compile: bool = True):

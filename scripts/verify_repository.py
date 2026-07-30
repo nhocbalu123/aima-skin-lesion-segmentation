@@ -37,39 +37,82 @@ def check_readme() -> None:
             fail(f"README contains forbidden claim: {phrase}")
 
 
-def check_notebook() -> None:
-    path = ROOT / "notebooks" / "skin_lesion_segmentation.ipynb"
-    notebook = json.loads(path.read_text(encoding="utf-8"))
-    if notebook.get("nbformat") != 4:
-        fail("Notebook is not nbformat 4")
-    code_cells = [cell for cell in notebook.get("cells", []) if cell.get("cell_type") == "code"]
-    if len(code_cells) > 6:
-        fail("Notebook is no longer a thin orchestrator")
-    for cell in code_cells:
-        if cell.get("outputs"):
-            fail("Notebook contains saved outputs")
-        if cell.get("execution_count") is not None:
-            fail("Notebook contains execution counts")
+def check_notebooks() -> None:
+    expected = {
+        "notebooks/kaggle_controlled_rerun.ipynb",
+        "notebooks/original_pipeline.ipynb",
+        "notebooks/skin_lesion_segmentation.ipynb",
+    }
+    actual = {
+        path.relative_to(ROOT).as_posix()
+        for path in ROOT.rglob("*.ipynb")
+        if ".venv" not in path.parts
+    }
+    if actual != expected:
+        fail(f"Unexpected notebook set: expected={sorted(expected)}, actual={sorted(actual)}")
+    for relative in sorted(expected):
+        path = ROOT / relative
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+        if notebook.get("nbformat") != 4:
+            fail(f"Notebook is not nbformat 4: {relative}")
+        code_cells = [
+            cell
+            for cell in notebook.get("cells", [])
+            if cell.get("cell_type") == "code"
+        ]
+        if relative.endswith("skin_lesion_segmentation.ipynb") and len(code_cells) > 6:
+            fail("Local notebook is no longer a thin orchestrator")
+        for cell in code_cells:
+            if cell.get("outputs"):
+                fail(f"Notebook contains saved outputs: {relative}")
+            if cell.get("execution_count") is not None:
+                fail(f"Notebook contains execution counts: {relative}")
 
-
-def check_kaggle_notebook() -> None:
-    path = ROOT / "notebooks" / "kaggle_controlled_rerun.ipynb"
-    notebook = json.loads(path.read_text(encoding="utf-8"))
-    if notebook.get("nbformat") != 4:
-        fail("Kaggle notebook is not nbformat 4")
-    source = "\n".join(
-        "".join(cell.get("source", [])) for cell in notebook.get("cells", [])
+    kaggle = json.loads(
+        (ROOT / "notebooks" / "kaggle_controlled_rerun.ipynb").read_text(
+            encoding="utf-8"
+        )
     )
-    for required in ("RUN_TRAINING", "RUN_SUBMISSION", "RLE_ORDER_CONFIRMED"):
+    source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in kaggle.get("cells", [])
+    )
+    for required in (
+        "/kaggle/working",
+        "SOURCE_COMMIT",
+        "RUN_VERIFY",
+        "RUN_PREPARE",
+        "RUN_TRAINING",
+        "RUN_COMPARISON",
+        "RUN_SUBMISSION",
+        "RLE_ORDER_CONFIRMED",
+        "prepare-comparison",
+        "--split-manifest",
+        "attention_unet",
+    ):
         if required not in source:
-            fail(f"Kaggle notebook is missing safety gate: {required}")
-    for cell in notebook.get("cells", []):
-        if cell.get("cell_type") != "code":
-            continue
-        if cell.get("outputs"):
-            fail("Kaggle notebook contains saved outputs")
-        if cell.get("execution_count") is not None:
-            fail("Kaggle notebook contains execution counts")
+            fail(f"Kaggle notebook is missing workflow marker: {required}")
+
+
+def check_experiment_configs() -> None:
+    for name in ("default.json", "controlled_rerun.json", "model_comparison.json"):
+        path = ROOT / "configs" / name
+        if not path.is_file():
+            fail(f"Missing experiment config: configs/{name}")
+        value = json.loads(path.read_text(encoding="utf-8"))
+        for field in ("model", "validation_fraction", "internal_test_fraction", "split_seed"):
+            if field not in value:
+                fail(f"configs/{name} is missing '{field}'")
+    comparison = json.loads(
+        (ROOT / "configs" / "model_comparison.json").read_text(encoding="utf-8")
+    )
+    if (
+        comparison.get("validation_fraction"),
+        comparison.get("internal_test_fraction"),
+        comparison.get("n_tta"),
+        comparison.get("threshold_grid"),
+    ) != (0.15, 0.15, 1, [0.5]):
+        fail("Model-comparison config does not preserve the sealed primary policy")
 
 
 
@@ -127,8 +170,8 @@ def main() -> int:
     if not compileall.compile_dir(ROOT / "tests", quiet=1):
         fail("Test compilation failed")
     check_readme()
-    check_notebook()
-    check_kaggle_notebook()
+    check_notebooks()
+    check_experiment_configs()
     check_controlled_rerun_evidence()
     check_whitespace()
     print("Repository static checks passed")

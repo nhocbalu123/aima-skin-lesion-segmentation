@@ -20,5 +20,9 @@ jobs:
           python -m pip install -e .
       - name: Run repository checks
         run: python scripts/verify_repository.py
-      - name: Run synthetic tests
-        run: pytest -q
+      - name: Run strict synthetic tests
+        run: pytest -q -W error
+      - name: Smoke-test both architectures
+        run: |
+          python -m skin_lesion_segmentation.cli smoke --model unet
+          python -m skin_lesion_segmentation.cli smoke --model attention_unet
