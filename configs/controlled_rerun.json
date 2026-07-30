@@ -25,10 +25,10 @@
     3
   ],
   "n_tta": 8,
-  "output_dir": "artifacts/run",
+  "output_dir": "artifacts/controlled_rerun",
   "rle_order": "C",
-  "rle_order_confirmed": false,
-  "sample_submission_path": null,
+  "rle_order_confirmed": true,
+  "sample_submission_path": "data/sample_submission.csv",
   "seed": 42,
   "split_seed": 20260730,
   "submission_id_column": "id",

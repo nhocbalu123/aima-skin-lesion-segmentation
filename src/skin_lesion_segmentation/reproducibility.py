@@ -6,7 +6,12 @@ import importlib.metadata
 import os
 import platform
 import random
+import re
+import shlex
+import subprocess
 import sys
+from pathlib import Path
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -68,10 +73,35 @@ def collect_environment() -> dict[str, Any]:
     # Ensure NumPy is always represented even in unusual editable environments.
     packages["numpy"] = packages.get("numpy") or np.__version__
     devices: list[str] = []
+    device_details: list[dict[str, Any]] = []
     try:
         import tensorflow as tf
 
-        devices = [device.name for device in tf.config.list_physical_devices()]
+        physical_devices = tf.config.list_physical_devices()
+        devices = [device.name for device in physical_devices]
+        for device in physical_devices:
+            details: dict[str, Any] = {}
+            try:
+                raw_details = tf.config.experimental.get_device_details(device)
+                details = {
+                    str(key): (
+                        list(value)
+                        if isinstance(value, tuple)
+                        else value
+                        if isinstance(value, (str, int, float, bool, type(None)))
+                        else str(value)
+                    )
+                    for key, value in raw_details.items()
+                }
+            except (AttributeError, RuntimeError, ValueError):
+                details = {}
+            device_details.append(
+                {
+                    "device_name": device.name,
+                    "device_type": device.device_type,
+                    "details": details,
+                }
+            )
     except ImportError:
         pass
     return {
@@ -83,4 +113,47 @@ def collect_environment() -> dict[str, Any]:
         "cpu_count": os.cpu_count(),
         "packages": packages,
         "tensorflow_devices": devices,
+        "tensorflow_device_details": device_details,
     }
+
+
+def command_record(argv: Sequence[object]) -> dict[str, Any]:
+    """Record an argument vector without losing shell-relevant boundaries."""
+
+    values = [str(value) for value in argv]
+    if not values:
+        raise ValueError("argv must not be empty")
+    return {"argv": values, "shell": shlex.join(values)}
+
+
+def collect_git_provenance(root: Path | str) -> dict[str, Any]:
+    """Capture the exact Git commit and whether tracked/untracked files differ."""
+
+    repository = Path(root).resolve()
+    try:
+        commit_process = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        status_process = subprocess.run(
+            ["git", "-C", str(repository), "status", "--porcelain"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return {
+            "commit": commit_process.stdout.strip().lower(),
+            "dirty": bool(status_process.stdout.strip()),
+        }
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        exported = repository / "SOURCE_COMMIT"
+        if not exported.is_file():
+            raise RuntimeError(
+                "Git metadata is unavailable and SOURCE_COMMIT is missing"
+            ) from None
+        commit = exported.read_text(encoding="ascii").strip().lower()
+        if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+            raise RuntimeError("SOURCE_COMMIT is not a full Git commit hash")
+        return {"commit": commit, "dirty": False}

@@ -10,6 +10,7 @@ from typing import Any
 
 @dataclass(slots=True)
 class ExperimentConfig:
+    model: str = "attention_unet"
     image_dir: str = "data/train/images"
     mask_dir: str = "data/train/masks"
     test_image_dir: str = "data/test/images"
@@ -24,6 +25,8 @@ class ExperimentConfig:
     base_filters: int = 32
     early_stopping_patience: int = 8
     validation_fraction: float = 0.2
+    internal_test_fraction: float = 0.15
+    split_seed: int = 20260730
     seed: int = 42
     learning_rate: float = 1e-3
     l2_coefficient: float = 1e-4
@@ -46,6 +49,8 @@ class ExperimentConfig:
         return cls(**data)
 
     def validate(self) -> None:
+        if self.model not in {"unet", "attention_unet"}:
+            raise ValueError("model must be 'unet' or 'attention_unet'")
         if self.image_height <= 0 or self.image_width <= 0:
             raise ValueError("image dimensions must be positive")
         if self.image_height % 16 or self.image_width % 16:
@@ -56,6 +61,14 @@ class ExperimentConfig:
             raise ValueError("early_stopping_patience must be non-negative")
         if not 0.0 < self.validation_fraction < 1.0:
             raise ValueError("validation_fraction must be between 0 and 1")
+        if not 0.0 < self.internal_test_fraction < 1.0:
+            raise ValueError("internal_test_fraction must be between 0 and 1")
+        if self.validation_fraction + self.internal_test_fraction >= 1.0:
+            raise ValueError(
+                "validation_fraction and internal_test_fraction must sum to less than 1"
+            )
+        if not isinstance(self.split_seed, int) or isinstance(self.split_seed, bool):
+            raise ValueError("split_seed must be an integer")
         if self.learning_rate <= 0.0 or self.l2_coefficient < 0.0:
             raise ValueError("learning_rate must be positive and l2_coefficient non-negative")
         if self.rle_order.upper() not in {"C", "F"}:

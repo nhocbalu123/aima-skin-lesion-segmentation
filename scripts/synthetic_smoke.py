@@ -13,6 +13,7 @@ import pandas as pd
 from skin_lesion_segmentation.data import build_pair_manifest
 from skin_lesion_segmentation.loading import PathBatchSequence
 from skin_lesion_segmentation.metrics import evaluate_predictions
+from skin_lesion_segmentation.smoke import run_model_smoke
 from skin_lesion_segmentation.splitting import build_split_manifest
 from skin_lesion_segmentation.submission import build_submission
 
@@ -49,7 +50,18 @@ def main() -> int:
         assert metrics["macro_dice"] == 1.0
         assert summary["rows"] == 1
         assert len(submission) == 1
-    print("Synthetic smoke flow passed")
+    unet = run_model_smoke("unet")
+    attention = run_model_smoke("attention_unet")
+    assert unet["shape"] == [1, 32, 32, 1]
+    assert attention["shape"] == [1, 32, 32, 1]
+    assert unet["dtype"] == attention["dtype"] == "float32"
+    assert unet["finite"] and attention["finite"]
+    assert unet["parameters"] < attention["parameters"]
+    print(
+        "Synthetic smoke flow passed "
+        f"(U-Net={unet['parameters']} parameters; "
+        f"Attention U-Net={attention['parameters']})"
+    )
     return 0
 
 
